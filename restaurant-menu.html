@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BONO — Ресторан</title>
+
+  <!-- ===== ШРИФТЫ ===== -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =====================================================
+       ПЕРЕМЕННЫЕ — меняй цвета и шрифты здесь глобально
+    ===================================================== */
+    :root {
+      --bg:        #F5F0E8;        /* светло-бежевый фон страницы */
+      --card:      #FFFFFF;        /* цвет карточки */
+      --accent:    #E63946;        /* красный акцент (бейдж «Хит», цена) */
+      --accent2:   #F4A261;        /* тёплый оранжевый — кнопки категорий */
+      --dark:      #1A1A2E;        /* тёмный текст */
+      --muted:     #9E9E9E;        /* серый второстепенный текст */
+      --radius:    25px;           /* скругление карточек */
+      --shadow:    0 8px 32px rgba(0,0,0,0.10);
+      --font-head: 'Playfair Display', serif;
+      --font-body: 'Montserrat', sans-serif;
+    }
+
+    /* =====================================================
+       ГЛОБАЛЬНЫЙ СБРОС И БАЗОВЫЕ СТИЛИ
+    ===================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--dark);
+      min-height: 100vh;
+      /* Зернистая текстура фона для тепла и глубины */
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(244,162,97,.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(230,57,70,.10) 0%, transparent 55%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* =====================================================
+       ШАПКА / HERO
+    ===================================================== */
+    header {
+      position: relative;
+      background: var(--dark);
+      color: #fff;
+      text-align: center;
+      padding: 60px 20px 80px;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 50%, rgba(244,162,97,.30) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 20%, rgba(230,57,70,.25) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .header-logo {
+      font-family: var(--font-head);
+      font-size: clamp(3rem, 10vw, 7rem);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+    .header-sub {
+      font-size: clamp(.85rem, 2.5vw, 1.1rem);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      margin-top: 8px;
+      position: relative;
+    }
+    .header-tagline {
+      margin-top: 18px;
+      font-size: clamp(.9rem, 2vw, 1.05rem);
+      color: rgba(255,255,255,.75);
+      font-weight: 500;
+      position: relative;
+    }
+
+    /* =====================================================
+       НАВИГАЦИЯ КАТЕГОРИЙ
+       Чтобы добавить категорию: добавь кнопку здесь
+       и пропиши категорию в данных блюд в JS.
+    ===================================================== */
+    .categories {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(245,240,232,.90);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(0,0,0,.07);
+      padding: 14px 20px;
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .categories::-webkit-scrollbar { display: none; }
+
+    /* ===== СТИЛЬ КНОПОК КАТЕГОРИЙ ===== */
+    .cat-btn {
+      flex-shrink: 0;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 50px;
+      font-family: var(--font-body);
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .25s ease;
+      background: rgba(26,26,46,.08);
+      color: var(--dark);
+    }
+    .cat-btn:hover {
+      background: var(--accent2);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(244,162,97,.4);
+    }
+    /* Активная кнопка */
+    .cat-btn.active {
+      background: var(--dark);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(26,26,46,.25);
+    }
+
+    /* =====================================================
+       ОСНОВНОЙ КОНТЕЙНЕР МЕНЮ
+    ===================================================== */
+    main { max-width: 1280px; margin: 0 auto; padding: 50px 20px; }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 700;
+      margin-bottom: 36px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(to right, var(--dark), transparent);
+      opacity: .15;
+    }
+
+    /* =====================================================
+       СЕТКА КАРТОЧЕК БЛЮд
+       Адаптивная: 4 → 3 → 2 → 1 колонки
+    ===================================================== */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 28px;
+    }
+
+    /* =====================================================
+       КАРТОЧКА БЛЮДА — главный визуальный блок
+       Стили фотографии, бейджа, цены и названия — здесь
+    ===================================================== */
+    .menu-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+      /* Анимация появления */
+      animation: fadeUp .45s ease both;
+    }
+    .menu-card:hover {
+      transform: translateY(-8px) scale(1.015);
+      box-shadow: 0 20px 50px rgba(0,0,0,.16);
+    }
+
+    /* Контейнер изображения */
+    .card-img {
+      position: relative;
+      width: 100%;
+      padding-top: 70%;    /* соотношение сторон */
+      overflow: hidden;
+    }
+    .card-img img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .5s ease;
+    }
+    .menu-card:hover .card-img img { transform: scale(1.07); }
+
+    /* ===== БЕЙДЖ «ХИТ» ===== */
+    .badge-hit {
+      position: absolute;
+      top: 14px; left: 14px;
+      background: var(--accent);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 13px;
+      border-radius: 50px;
+      box-shadow: 0 4px 14px rgba(230,57,70,.5);
+      z-index: 2;
+    }
+
+    /* Тело карточки */
+    .card-body {
+      padding: 18px 20px 22px;
+    }
+    /* ===== ЦЕНА — крупная и жирная ===== */
+    .card-price {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    /* ===== НАЗВАНИЕ БЛЮДА ===== */
+    .card-name {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 6px;
+      color: var(--dark);
+      line-height: 1.3;
+    }
+    /* ===== ВЕС И КАЛОРИИ (серые) ===== */
+    .card-meta {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    /* Кнопка «В корзину» на карточке */
+    .card-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      padding: 10px;
+      background: var(--dark);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      width: 100%;
+      font-family: var(--font-body);
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      cursor: pointer;
+      transition: background .2s, transform .2s;
+    }
+    .card-btn:hover { background: var(--accent); transform: scale(1.03); }
+
+    /* Анимация появления карточек */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* =====================================================
+       МОДАЛЬНОЕ ОКНО — подробная информация о блюде
+       Открывается при клике на карточку
+    ===================================================== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(26,26,46,.6);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: var(--card);
+      border-radius: var(--radius);
+      max-width: 520px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.3);
+      transform: translateY(30px) scale(.97);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+    .modal-img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+    }
+    .modal-body { padding: 28px; }
+    .modal-name {
+      font-family: var(--font-head);
+      font-size: 1.7rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .modal-price {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+    .modal-meta { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+
+    /* Блок КБЖУ */
+    .kbju {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .kbju-item {
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+    .kbju-val { font-size: 1.15rem; font-weight: 700; color: var(--dark); }
+    .kbju-lbl { font-size: .68rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+
+    .modal-ingr-title {
+      font-weight: 700;
+      margin-top: 22px;
+      margin-bottom: 8px;
+      font-size: .88rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .modal-ingr {
+      font-size: .9rem;
+      line-height: 1.7;
+      color: var(--dark);
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,.85);
+      border: none;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      transition: background .2s, transform .2s;
+    }
+    .modal-close:hover { background: var(--accent); color: #fff; transform: rotate(90deg); }
+    .modal-wrap { position: relative; }
+
+    /* =====================================================
+       СЕКЦИЯ «НАШ ИНТЕРЬЕР» — галерея 2x4
+    ===================================================== */
+    .interior-section { margin-top: 80px; }
+
+    /* Сетка плиток: 2 колонки, 4 ряда */
+    .interior-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    /* Каждая плитка в том же стиле, что и карточки блюд */
+    .interior-tile {
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      aspect-ratio: 4/3;
+      cursor: pointer;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+    }
+    .interior-tile:nth-child(3) { aspect-ratio: 1; }   /* одна плитка квадратная для ритма */
+    .interior-tile:hover {
+      transform: scale(1.03);
+      box-shadow: 0 18px 48px rgba(0,0,0,.18);
+    }
+    .interior-tile img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .5s ease;
+    }
+    .interior-tile:hover img { transform: scale(1.08); }
+
+    /* =====================================================
+       ФУТЕР — адрес и телефон
+    ===================================================== */
+    footer {
+      background: var(--dark);
+      color: #fff;
+      text-align: center;
+      padding: 60px 20px 50px;
+      margin-top: 80px;
+    }
+    .footer-logo {
+      font-family: var(--font-head);
+      font-size: 2.8rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .footer-divider {
+      width: 60px; height: 3px;
+      background: var(--accent);
+      margin: 18px auto;
+      border-radius: 3px;
+    }
+    /* ===== АДРЕС — крупный и читаемый ===== */
+    .footer-address {
+      font-size: clamp(1rem, 3vw, 1.3rem);
+      font-weight: 500;
+      color: rgba(255,255,255,.8);
+      line-height: 1.8;
+    }
+    /* ===== ТЕЛЕФОН — крупный и читаемый ===== */
+    .footer-phone {
+      font-size: clamp(1.3rem, 4vw, 1.9rem);
+      font-weight: 700;
+      color: var(--accent2);
+      margin-top: 10px;
+      text-decoration: none;
+      display: inline-block;
+      transition: color .2s;
+    }
+    .footer-phone:hover { color: var(--accent); }
+    .footer-hours {
+      margin-top: 14px;
+      font-size: .88rem;
+      color: rgba(255,255,255,.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* =====================================================
+       АДАПТИВНОСТЬ ПОД ТЕЛЕФОНЫ
+    ===================================================== */
+    @media (max-width: 640px) {
+      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .interior-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .card-price { font-size: 1.3rem; }
+      .card-name { font-size: .88rem; }
+      .kbju { grid-template-columns: repeat(2,1fr); }
+      .modal-img { height: 180px; }
+    }
+    @media (max-width: 400px) {
+      .menu-grid { grid-template-columns: 1fr; }
+      .interior-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================
+       ШАПКА САЙТА
+  ===================================================== -->
+  <header>
+    <div class="header-logo">BONO</div>
+    <div class="header-sub">Авторская кухня · Москва</div>
+    <div class="header-tagline">Готовим с душой с 2010 года</div>
+  </header>
+
+  <!-- =====================================================
+       КНОПКИ КАТЕГОРИЙ
+       Чтобы добавить категорию:
+       1. Добавь кнопку здесь с нужным data-cat
+       2. Добавь блюда с тем же значением category в массиве menuItems в JS
+  ===================================================== -->
+  <nav class="categories" id="categories">
+    <button class="cat-btn active" data-cat="all">🍽 Всё меню</button>
+    <button class="cat-btn" data-cat="salads">🥗 Салаты</button>
+    <button class="cat-btn" data-cat="hot">🔥 Горячее</button>
+    <button class="cat-btn" data-cat="soup">🍲 Супы</button>
+    <button class="cat-btn" data-cat="drinks">🥤 Напитки</button>
+    <button class="cat-btn" data-cat="desserts">🍰 Десерты</button>
+  </nav>
+
+  <!-- =====================================================
+       ОСНОВНОЙ КОНТЕНТ
+  ===================================================== -->
+  <main>
+    <h2 class="section-title">Меню</h2>
+
+    <!-- Сюда JS вставляет карточки блюд -->
+    <div class="menu-grid" id="menuGrid"></div>
+
+    <!-- =====================================================
+         СЕКЦИЯ ИНТЕРЬЕРА
+    ===================================================== -->
+    <section class="interior-section">
+      <h2 class="section-title">Наш интерьер</h2>
+      <!-- 8 плиток: 2 колонки × 4 ряда -->
+      <div class="interior-grid">
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop" alt="Интерьер 1" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop" alt="Интерьер 2" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=600&auto=format&fit=crop" alt="Интерьер 3" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&auto=format&fit=crop" alt="Интерьер 4" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=600&auto=format&fit=crop" alt="Интерьер 5" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=600&auto=format&fit=crop" alt="Интерьер 6" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?w=600&auto=format&fit=crop" alt="Интерьер 7" loading="lazy"></div>
+        <div class="interior-tile"><img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&auto=format&fit=crop" alt="Интерьер 8" loading="lazy"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =====================================================
+       МОДАЛЬНОЕ ОКНО — вёрстка (содержимое заполняет JS)
+  ===================================================== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-wrap">
+      <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+      <div class="modal" id="modal">
+        <img class="modal-img" id="modalImg" src="" alt="">
+        <div class="modal-body">
+          <div class="modal-name" id="modalName"></div>
+          <div class="modal-price" id="modalPrice"></div>
+          <div class="modal-meta" id="modalMeta"></div>
+          <div class="kbju" id="modalKbju"></div>
+          <div class="modal-ingr-title">Состав</div>
+          <div class="modal-ingr" id="modalIngr"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       ФУТЕР
+  ===================================================== -->
+  <footer>
+    <div class="footer-logo">BONO</div>
+    <div class="footer-divider"></div>
+    <!-- ===== АДРЕС — меняй здесь ===== -->
+    <div class="footer-address">
+      ул. Арбат, 28, Москва, 119002<br>
+      м. Арбатская · 5 мин пешком
+    </div>
+    <!-- ===== ТЕЛЕФОН — меняй здесь ===== -->
+    <a class="footer-phone" href="tel:+74951234567">+7 (495) 123-45-67</a>
+    <div class="footer-hours">Пн–Вс · 11:00 — 23:00</div>
+  </footer>
+
+  <!-- =====================================================
+       JAVASCRIPT
+  ===================================================== -->
+  <script>
+    /* ==================================================
+       ДАННЫЕ БЛЮД
+       Чтобы добавить блюдо — добавь объект в этот массив.
+       Поля:
+         id       — уникальный номер
+         name     — название
+         price    — цена (строка)
+         weight   — вес/объём
+         cal      — калории (ккал)
+         hit      — true/false (показывать бейдж «Хит»)
+         category — "salads" | "hot" | "soup" | "drinks" | "desserts"
+         img      — URL картинки (Unsplash или своя)
+         ingr     — состав блюда (строка)
+         kbju     — { k, b, j, u } — калории, белки, жиры, углеводы
+    ================================================== */
+    const menuItems = [
+      /* ---- САЛАТЫ ---- */
+      {
+        id: 1, category: 'salads', hit: true,
+        name: 'Цезарь с курицей',
+        price: '490 ₽', weight: '280 г', cal: '320 ккал',
+        img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop',
+        ingr: 'Листья романо, куриное филе гриль, пармезан, гренки из чиабатты, перепелиные яйца, соус Цезарь (анчоусы, горчица, лимон, оливковое масло, чеснок).',
+        kbju: { k: 320, b: 28, j: 16, u: 14 }
+      },
+      {
+        id: 2, category: 'salads', hit: false,
+        name: 'Греческий салат',
+        price: '390 ₽', weight: '260 г', cal: '210 ккал',
+        img: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&auto=format&fit=crop',
+        ingr: 'Томаты черри, огурец, болгарский перец, маслины Каламата, сыр фета, красный лук, оливковое масло, орегано.',
+        kbju: { k: 210, b: 8, j: 14, u: 12 }
+      },
+      {
+        id: 3, category: 'salads', hit: false,
+        name: 'Тёплый салат с лососем',
+        price: '690 ₽', weight: '300 г', cal: '410 ккал',
+        img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop',
+        ingr: 'Лосось слабосолёный, микс салатных листьев, авокадо, огурец, редис, каперсы, соус тартар.',
+        kbju: { k: 410, b: 32, j: 24, u: 10 }
+      },
+      /* ---- ГОРЯЧЕЕ ---- */
+      {
+        id: 4, category: 'hot', hit: true,
+        name: 'Стейк Рибай',
+        price: '1 890 ₽', weight: '350 г', cal: '620 ккал',
+        img: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&auto=format&fit=crop',
+        ingr: 'Говядина мраморная (Рибай), сливочное масло с тимьяном и чесноком, розмарин, морская соль, чёрный перец. Подаётся с соусом из красного вина.',
+        kbju: { k: 620, b: 52, j: 42, u: 2 }
+      },
+      {
+        id: 5, category: 'hot', hit: false,
+        name: 'Паста Карбонара',
+        price: '520 ₽', weight: '320 г', cal: '580 ккал',
+        img: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=600&auto=format&fit=crop',
+        ingr: 'Спагетти, панчетта, яичный желток, сыр Пекорино Романо, пармезан, чёрный перец, соль.',
+        kbju: { k: 580, b: 22, j: 26, u: 62 }
+      },
+      {
+        id: 6, category: 'hot', hit: false,
+        name: 'Лосось на гриле',
+        price: '890 ₽', weight: '280 г', cal: '430 ккал',
+        img: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&auto=format&fit=crop',
+        ingr: 'Филе лосося, лимон, каперсы, зелёный горошек, соус Ремулад, брокколи на пару, молодой картофель.',
+        kbju: { k: 430, b: 38, j: 22, u: 18 }
+      },
+      {
+        id: 7, category: 'hot', hit: true,
+        name: 'Утиная грудка',
+        price: '1 190 ₽', weight: '300 г', cal: '510 ккал',
+        img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop',
+        ingr: 'Утиная грудка конфи, апельсиновый соус, крем из пастернака, вяленая вишня, тимьян.',
+        kbju: { k: 510, b: 34, j: 30, u: 22 }
+      },
+      /* ---- СУПЫ ---- */
+      {
+        id: 8, category: 'soup', hit: false,
+        name: 'Крем-суп из тыквы',
+        price: '320 ₽', weight: '350 мл', cal: '180 ккал',
+        img: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=600&auto=format&fit=crop',
+        ingr: 'Тыква запечённая, имбирь, кокосовое молоко, сливки, лук-шалот, тыквенные семечки, петрушка.',
+        kbju: { k: 180, b: 4, j: 10, u: 20 }
+      },
+      {
+        id: 9, category: 'soup', hit: true,
+        name: 'Том Ям с морепродуктами',
+        price: '590 ₽', weight: '400 мл', cal: '240 ккал',
+        img: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600&auto=format&fit=crop',
+        ingr: 'Кокосовое молоко, лемонграсс, лайм, галангал, кафир-лайм, тигровые креветки, кальмар, мидии, грибы шиитаке, перец чили.',
+        kbju: { k: 240, b: 20, j: 12, u: 14 }
+      },
+      /* ---- НАПИТКИ ---- */
+      {
+        id: 10, category: 'drinks', hit: false,
+        name: 'Лимонад Манго-Маракуйя',
+        price: '290 ₽', weight: '400 мл', cal: '140 ккал',
+        img: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&auto=format&fit=crop',
+        ingr: 'Свежее манго, маракуйя, лимонный сок, тростниковый сахар, мята, газированная вода.',
+        kbju: { k: 140, b: 1, j: 0, u: 34 }
+      },
+      {
+        id: 11, category: 'drinks', hit: true,
+        name: 'Матча Латте',
+        price: '340 ₽', weight: '350 мл', cal: '160 ккал',
+        img: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=600&auto=format&fit=crop',
+        ingr: 'Японский матча, молоко овсяное / коровье, сироп агавы. Подаётся горячим или со льдом.',
+        kbju: { k: 160, b: 5, j: 4, u: 26 }
+      },
+      {
+        id: 12, category: 'drinks', hit: false,
+        name: 'Смузи «Зелёный детокс»',
+        price: '380 ₽', weight: '400 мл', cal: '120 ккал',
+        img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop',
+        ingr: 'Шпинат, огурец, зелёное яблоко, имбирь, лимон, кокосовая вода, спирулина.',
+        kbju: { k: 120, b: 3, j: 1, u: 24 }
+      },
+      /* ---- ДЕСЕРТЫ ---- */
+      {
+        id: 13, category: 'desserts', hit: true,
+        name: 'Тирамису классический',
+        price: '420 ₽', weight: '180 г', cal: '380 ккал',
+        img: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=600&auto=format&fit=crop',
+        ingr: 'Маскарпоне, савоярди, эспрессо, яичные желтки, сахар, какао-порошок, амаретто (по желанию).',
+        kbju: { k: 380, b: 8, j: 22, u: 38 }
+      },
+      {
+        id: 14, category: 'desserts', hit: false,
+        name: 'Шоколадный фондан',
+        price: '390 ₽', weight: '150 г', cal: '460 ккал',
+        img: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&auto=format&fit=crop',
+        ingr: 'Тёмный бельгийский шоколад 70%, сливочное масло, яйца, мука, сахарная пудра. Подаётся с шариком ванильного мороженого.',
+        kbju: { k: 460, b: 8, j: 28, u: 48 }
+      },
+      {
+        id: 15, category: 'desserts', hit: false,
+        name: 'Клубничный чизкейк',
+        price: '450 ₽', weight: '200 г', cal: '400 ккал',
+        img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop',
+        ingr: 'Крем-сыр Филадельфия, сливки 33%, сахар, желатин, основа из крекера и сливочного масла, свежая клубника, джем.',
+        kbju: { k: 400, b: 7, j: 24, u: 40 }
+      }
+    ];
+
+    /* ==================================================
+       РЕНДЕР КАРТОЧЕК БЛЮД
+       Функция принимает массив блюд и отрисовывает карточки в сетке
+    ================================================== */
+    function renderCards(items) {
+      const grid = document.getElementById('menuGrid');
+      grid.innerHTML = '';
+
+      if (items.length === 0) {
+        grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:40px 0;">Блюда не найдены 😕</p>';
+        return;
+      }
+
+      items.forEach((item, i) => {
+        const card = document.createElement('div');
+        card.className = 'menu-card';
+        card.style.animationDelay = (i * 0.06) + 's'; /* каскадная задержка анимации */
+        card.innerHTML = `
+          <div class="card-img">
+            <img src="${item.img}" alt="${item.name}" loading="lazy">
+            ${item.hit ? '<span class="badge-hit">🔥 Хит</span>' : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-price">${item.price}</div>
+            <div class="card-name">${item.name}</div>
+            <div class="card-meta">${item.weight} · ${item.cal}</div>
+            <button class="card-btn">Подробнее &rarr;</button>
+          </div>
+        `;
+
+        /* При клике на карточку — открываем модальное окно */
+        card.addEventListener('click', () => openModal(item));
+        grid.appendChild(card);
+      });
+    }
+
+    /* ==================================================
+       ЛОГИКА ФИЛЬТРАЦИИ ПО КАТЕГОРИЯМ
+       При клике на кнопку: фильтруем массив menuItems
+       по полю category и перерисовываем карточки
+    ================================================== */
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        /* Снимаем активный класс со всех кнопок */
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        /* Ставим активный класс на нажатую */
+        btn.classList.add('active');
+
+        const cat = btn.dataset.cat;
+        /* Если "all" — показываем всё, иначе фильтруем */
+        const filtered = cat === 'all'
+          ? menuItems
+          : menuItems.filter(item => item.category === cat);
+
+        renderCards(filtered);
+      });
+    });
+
+    /* ==================================================
+       МОДАЛЬНОЕ ОКНО — открытие
+       Заполняем поля данными выбранного блюда
+    ================================================== */
+    function openModal(item) {
+      document.getElementById('modalImg').src   = item.img;
+      document.getElementById('modalImg').alt   = item.name;
+      document.getElementById('modalName').textContent  = item.name;
+      document.getElementById('modalPrice').textContent = item.price;
+      document.getElementById('modalMeta').textContent  = item.weight + ' · ' + item.cal;
+      document.getElementById('modalIngr').textContent  = item.ingr;
+
+      /* Блок КБЖУ — 4 значения */
+      document.getElementById('modalKbju').innerHTML = `
+        <div class="kbju-item"><div class="kbju-val">${item.kbju.k}</div><div class="kbju-lbl">Ккал</div></div>
+        <div class="kbju-item"><div class="kbju-val">${item.kbju.b}г</div><div class="kbju-lbl">Белки</div></div>
+        <div class="kbju-item"><div class="kbju-val">${item.kbju.j}г</div><div class="kbju-lbl">Жиры</div></div>
+        <div class="kbju-item"><div class="kbju-val">${item.kbju.u}г</div><div class="kbju-lbl">Углев.</div></div>
+      `;
+
+      document.getElementById('modalOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden'; /* блокируем скролл страницы */
+    }
+
+    /* ==================================================
+       МОДАЛЬНОЕ ОКНО — закрытие
+    ================================================== */
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* Закрытие по кнопке ✕ */
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    /* Закрытие по клику на затемнённый фон */
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+    /* Закрытие по Escape */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* ==================================================
+       ИНИЦИАЛИЗАЦИЯ — показываем все блюда при загрузке
+    ================================================== */
+    renderCards(menuItems);
+  </script>
+
+</body>
+</html>
